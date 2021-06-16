@@ -12,7 +12,7 @@ from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
-from convertor import create_csv
+from src.convertor import create_csv
 
 
 class FacebookCrawler:
@@ -209,7 +209,7 @@ class FacebookCrawler:
         """
         create_csv()  # from .xlsx to .csv
 
-        file_name = 'fb_data.csv'
+        file_name = '../data/fb_data.csv'
         f = os.path.abspath(file_name)
         data = pd.read_csv(f)
 

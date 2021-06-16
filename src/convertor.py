@@ -1,7 +1,4 @@
-# import pandas as pd
-#
-# read_file = pd.read_excel(r'C:\fb_parser\FB_data.xlsx')
-# read_file.to_csv(r'C:\fb_parser\fb_data.csv', index=None, header=True)
+import os
 
 import pandas as pd
 
@@ -9,7 +6,9 @@ import openpyxl
 
 
 def create_csv():
-    wb = openpyxl.load_workbook(r'C:\fb_parser\FB_data.xlsx')
+    file_name = r'../data/FB_data.xlsx'
+    f = os.path.abspath(file_name)
+    wb = openpyxl.load_workbook(f)
     all_dicts = list()
     id = 1
 
@@ -27,8 +26,9 @@ def create_csv():
             id += 1
 
     df = pd.DataFrame(all_dicts)
-    df.to_csv(r'fb_data.csv', index=False, header=True)
+    df.to_csv(r'../data/fb_data.csv', index=False, header=True)
     wb.close()
 
 
-create_csv()
+
+# create_csv()
