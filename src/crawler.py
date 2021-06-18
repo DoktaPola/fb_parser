@@ -16,12 +16,14 @@ from src.convertor import create_csv
 
 
 class FacebookCrawler:
-    LOGIN_URL = 'https://www.facebook.com/login.php?login_attempt=1&lwv=111'  # login page
+    # login page
+    LOGIN_URL = 'https://www.facebook.com/login.php?login_attempt=1&lwv=111'
 
     def __init__(self):
+        # chrome settings
         chrome_options = webdriver.ChromeOptions()
 
-        prefs = {"profile.default_content_setting_values.notifications": 2}  # chrome settings
+        prefs = {"profile.default_content_setting_values.notifications": 2}
         chrome_options.add_experimental_option("prefs", prefs)
 
         chrome_options.add_argument("--disable-blink-features")  # попытка избежать блока
@@ -36,7 +38,7 @@ class FacebookCrawler:
 
         self.visited = set()
 
-        self.storage = list() # LINKS of visited people
+        self.storage = list()  # LINKS of visited people
 
         self.users_pages = Queue()
 
@@ -52,23 +54,30 @@ class FacebookCrawler:
 
         # wait for the main page to load
         time.sleep(random.randrange(1, 5, 1))
-
-        self.page_link = self.driver.current_url  # get link of initial page
-
-        self.driver.get(self.page_link)  # open initial page
+        # get link of initial page
+        self.page_link = self.driver.current_url
+        # open initial page
+        self.driver.get(self.page_link)
         time.sleep(random.randrange(1, 5, 1))
 
     def write_in_json(self):
-        # TODO
+        """
+        Add parsed data from storage to .json file.
+        """
         f = open('fb_hse_usr_jobs.json', 'w', encoding="utf-8")
-        f.write(json.dumps(self.storage, indent=4, ensure_ascii=False, sort_keys=False))
+        f.write(json.dumps(self.storage,
+                           indent=4,
+                           ensure_ascii=False,
+                           sort_keys=False))
         f.close()
-
-        # create_csv()  # создаю DataFrame
-
         self.driver.close()
 
     def to_parse_job(self, job: str):
+        """
+        Get job name info.
+        :param job: string with info about jobs
+        :return: current job name & prev job name
+        """
         _job = re.search(r'Работа*', job)
         if _job:
             job_now = job.split('Работа')[1]  # job now
@@ -82,6 +91,11 @@ class FacebookCrawler:
                 return job_now, '-'
 
     def to_parse_study(self, study: str) -> bool:
+        """
+        Get university name info.
+        :param study: string with info about uni-s
+        :return: (bool) whether user studies or studied in HSE
+        """
         _study = re.search(r'Вуз*', study)
         if _study:
             study_name = study.split('Вуз')[1]  # study name
@@ -98,6 +112,11 @@ class FacebookCrawler:
                 return False
 
     def get_info(self, link) -> dict:
+        """
+        Link by link go to usr info about job & study.
+        :param link: main user's fb page
+        :return: dict with parsed info about job & study
+        """
         try:
             d_info = dict()
 
@@ -113,7 +132,7 @@ class FacebookCrawler:
                        'cb02d2ww j1lvzwm4')  # get class with info link
 
             info_link = str(links[1]['href'])
-
+            # TESTS
             # info_link = 'https://www.facebook.com/daria.smirnova.944/about'  ######################
             # info_link = 'https://www.facebook.com/elisaveta.lobanova/about'  ######################
             # info_link = 'https://www.facebook.com/ivan.khvorov/about'  ###################### работал
@@ -149,15 +168,12 @@ class FacebookCrawler:
                     d_info['job_now'] = job_now
                     d_info['job_past'] = job_past
             return d_info
-        except:
+        except TimeoutException:
             self.write_in_json()
-
-            # time.sleep(random.randrange(6, 10))  # to load all elems
 
     def set_data(self):
         """
-
-        :return:
+        Fill in given data about HSE likers & subscribers.
         """
         create_csv()  # from .xlsx to .csv
 
@@ -190,7 +206,10 @@ class FacebookCrawler:
 
         self.storage.append(d_info)
 
-    def bfs(self):
+    def to_parse(self):
+        """
+        Check if link was visited, otherwise start to parse it.
+        """
         while not self.users_pages.empty():
             arr = self.users_pages.get()
             id_usr = arr[0]
@@ -201,8 +220,8 @@ class FacebookCrawler:
                 self.visited.add(link_usr)  # add link in visited
                 try:
                     user_information = self.get_info(link_usr)
-
-                    self.fill_storage(id_usr, name_usr, user_information)  # add new person in stor
+                    # add parsed user into storage
+                    self.fill_storage(id_usr, name_usr, user_information)
 
                 except TimeoutException:
                     self.write_in_json()
@@ -211,28 +230,23 @@ class FacebookCrawler:
 
 
 def main():
+    # TODO
+    #  *args **kwargs
+
     login = '79037332943'
     password = 'мщшц38епцщг'
 
     # login = 'irkaxortiza@mail.ru'
     # password = '17YouWannaBeOnTop1995'
 
+    # init class instance
     crawler = FacebookCrawler()
+    # add data to class
     crawler.set_data()
+    # dive into fb
     crawler.login(login=login, password=password)
-    crawler.bfs()
-    # INITIAL ADDING
-    # id = crawler.get_id(crawler.page_link)  # only main user id
-    #
-    # user_name = crawler.get_init_name()
-    #
-    # arr_links_inf_fr = crawler.get_links_info_friends()  # return 2 links to open inf and fr pages
-    # arr_info = crawler.get_info(arr_links_inf_fr[0])  # call method to get info from page
-    # arr_friends = crawler.get_friends(arr_links_inf_fr[1])  # call method to get list of friends from page
-    #
-    # fill_storage(crawler, id, user_name, arr_info, arr_friends)
-
-    # bfs(crawler)  # call bfs from my friends
+    # start of parsing users
+    crawler.to_parse()
 
 
 if __name__ == '__main__':
