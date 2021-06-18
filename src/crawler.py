@@ -29,22 +29,14 @@ class FacebookCrawler:
 
         self.driver = webdriver.Chrome(options=chrome_options,
                                        executable_path=r'C:\chromedriver_win32\chromedriver.exe')
-        self.wait = WebDriverWait(self.driver,
-                                  10)  # дает драйверу подождать несколько секунд, перед следующим действием
+        # дает драйверу подождать несколько секунд, перед следующим действием
+        self.wait = WebDriverWait(self.driver, 10)
 
         self.page_link = ''
 
-        self.links = None
+        self.visited = set()
 
-        self.links_items = None
-
-        self.str = ''
-
-        self.storage = {}
-
-        self.id = ''
-
-        self.counter = 0
+        self.storage = list() # LINKS of visited people
 
         self.users_pages = Queue()
 
@@ -68,7 +60,7 @@ class FacebookCrawler:
 
     def write_in_json(self):
         # TODO
-        f = open('friends.json', 'w', encoding="utf-8")
+        f = open('fb_hse_usr_jobs.json', 'w', encoding="utf-8")
         f.write(json.dumps(self.storage, indent=4, ensure_ascii=False, sort_keys=False))
         f.close()
 
@@ -93,10 +85,11 @@ class FacebookCrawler:
         _study = re.search(r'Вуз*', study)
         if _study:
             study_name = study.split('Вуз')[1]  # study name
+            # try find ВШЭ, Вышка, HSE
             hse_study = re.search(r'[a-zA-Zа-яА-Я ]*HSE[a-zA-Zа-яА-Я ]*', study) or \
                         re.search(r'[a-zA-Zа-яА-Я ]*вшэ[a-zA-Zа-яА-Я ]*', study) or \
                         re.search(r'[a-zA-Zа-яА-Я ]*ВШЭ[a-zA-Zа-яА-Я ]*', study) or \
-                        re.search(r'[a-zA-Zа-яА-Я ]*Вышка[a-zA-Zа-яА-Я ]*', study)  # try find ВШЭ, Вышка, HSE
+                        re.search(r'[a-zA-Zа-яА-Я ]*Вышка[a-zA-Zа-яА-Я ]*', study)
             if hse_study:
                 return True
             elif study_name == 'Нет школ для показа':  # no uni note
@@ -182,30 +175,30 @@ class FacebookCrawler:
             self.users_pages.put(arr)
 
     def fill_storage(self, user_id: str, user_name: str, d_information: dict):
-        # TODO
-        pass
+        """
+        Save all parsed usr info into self.storage(list).
+        :param user_id: id is just a num in queue
+        :param user_name: name+surname from fb
+        :param d_information: current job, prev job
+        """
+        d_info = dict()
 
-        # d_information['name'] = user_name
-        #
-        # d_friends_list = dict()
-        # d_friends_list['friends'] = friends
-        #
-        # d_user = dict()
-        # d_user['general_info'] = d_information
-        # d_user['friends_list'] = d_friends_list
-        # self.storage[user_id] = d_user
+        d_info['id'] = int(user_id)
+        d_info['name'] = user_name
+
+        d_info.update(d_information)
+
+        self.storage.append(d_info)
 
     def bfs(self):
-        visited = set()  # LINKS of visited people
-
         while not self.users_pages.empty():
             arr = self.users_pages.get()
             id_usr = arr[0]
             name_usr = arr[1]
             link_usr = arr[2]
 
-            if link_usr not in visited:
-                visited.add(link_usr)  # add link in visited
+            if link_usr not in self.visited:
+                self.visited.add(link_usr)  # add link in visited
                 try:
                     user_information = self.get_info(link_usr)
 
