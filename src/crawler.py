@@ -89,19 +89,20 @@ class FacebookCrawler:
             else:
                 return job_now, '-'
 
-    def to_parse_study(self, study: str):
-        pass
-        # _job = re.search(r'Работа*', job)
-        # if _job:
-        #     job_now = job.split('Работа')[1]  # job now
-        #     _job_past = re.search(r'Работал[а]*', job)
-        #     if _job_past:
-        #         job_past = re.split(r'Работал[а]?', job)[1]  # prev job
-        #         return job_now, job_past
-        #     elif job_now == 'Нет рабочих мест для показа':  # no job note
-        #         return '-', '-'
-        #     else:
-        #         return job_now, '-'
+    def to_parse_study(self, study: str) -> bool:
+        _study = re.search(r'Вуз*', study)
+        if _study:
+            study_name = study.split('Вуз')[1]  # study name
+            hse_study = re.search(r'[a-zA-Zа-яА-Я ]*HSE[a-zA-Zа-яА-Я ]*', study) or \
+                        re.search(r'[a-zA-Zа-яА-Я ]*вшэ[a-zA-Zа-яА-Я ]*', study) or \
+                        re.search(r'[a-zA-Zа-яА-Я ]*ВШЭ[a-zA-Zа-яА-Я ]*', study) or \
+                        re.search(r'[a-zA-Zа-яА-Я ]*Вышка[a-zA-Zа-яА-Я ]*', study)  # try find ВШЭ, Вышка, HSE
+            if hse_study:
+                return True
+            elif study_name == 'Нет школ для показа':  # no uni note
+                return False
+            else:
+                return False
 
     def get_info(self, link) -> dict:
         try:
@@ -122,7 +123,7 @@ class FacebookCrawler:
 
             # info_link = 'https://www.facebook.com/daria.smirnova.944/about'  ######################
             # info_link = 'https://www.facebook.com/elisaveta.lobanova/about'  ######################
-            info_link = 'https://www.facebook.com/ivan.khvorov/about'  ###################### работал
+            # info_link = 'https://www.facebook.com/ivan.khvorov/about'  ###################### работал
             # info_link = 'https://www.facebook.com/profile.php?id=100027683190771&sk=about'  ###################### пустая
             self.driver.get(info_link)  # open page with info
             time.sleep(random.randrange(1, 4, 1))
@@ -141,51 +142,20 @@ class FacebookCrawler:
             job_study = soup.find_all('div', {'class': 'tu1s4ah4'})
             job = job_study[1].get_text()
             study = job_study[2].get_text()
-            t = 0
 
-            self.to_parse_job(job)
-            self.to_parse_study(study)
+            if self.to_parse_study(study):  # is user from HSE
+                job_now, job_past = self.to_parse_job(job)
 
-            # ПРОВЕРКА НА ВЫШКУ ВШЭ
-
-            # if self.links is None:  # ЕСЛИ НЕТ ИНФЫ О job, education, city
-            #     d_info['NO_info'] = '-'
-            # else:
-            #     for word in self.links:
-            # soup_2 = BeautifulSoup(str(word), 'html.parser')
-            # text = soup_2.get_text('\t')
-            # sep_text = text.strip().split('\t')
-            # if len(sep_text) == 1:
-            #     d_info['some_info'] = sep_text[0]
-            # else:
-            #     _study = re.search(r'Учи[а-я]*', sep_text[0])  # parse
-            # _study_2 = re.search(r'Изуча[а-я]*', sep_text[0])  # parse
-            #
-            # if (_study_2 is not None) or (_study is not None):
-            #     d_info['study'] = sep_text[1]
-            # elif sep_text[0].find('Живет') != -1:
-            #     d_info['live_in'] = sep_text[1]
-            #
-            # self.links = soup.find_all(class_='_c24 _2ieq')  # get num, vk (or other social net), b-day
-            # if self.links is None:  # ЕСЛИ НЕТ ИНФЫ О job, education, city
-            #     d_info['NO_info'] = '-'
-            # else:
-            #     for
-            # link in self.links:
-            # soup_3 = BeautifulSoup(str(link), 'html.parser')
-            # text = soup_3.get_text('\t')
-            # sep_text = text.strip().split('\t')
-            #
-            # if sep_text[0].find('Телефоны') != -1:
-            #     d_info['phone'] = sep_text[1]
-            # elif sep_text[0].find('Дата рождения') != -1:
-            #     d_info['b-day'] = sep_text[1]
-            # elif sep_text[0].find('Ссылки на профили в Сети') != -1:
-            #     d_info['links'] = sep_text[1]
-            # elif sep_text[0].find('Электронный адрес') != -1:
-            #     d_info['email'] = sep_text[1]
-            #
-            # return d_info
+                if job_now == job_past == '-':
+                    d_info['job_now'] = '-'
+                    d_info['job_past'] = '-'
+                elif job_past == '-':
+                    d_info['job_now'] = job_now
+                    d_info['job_past'] = '-'
+                else:
+                    d_info['job_now'] = job_now
+                    d_info['job_past'] = job_past
+            return d_info
         except:
             self.write_in_json()
 
@@ -248,8 +218,8 @@ class FacebookCrawler:
 
 
 def main():
-    login='79037332943'
-    password='мщшц38епцщг'
+    login = '79037332943'
+    password = 'мщшц38епцщг'
 
     # login = 'irkaxortiza@mail.ru'
     # password = '17YouWannaBeOnTop1995'
