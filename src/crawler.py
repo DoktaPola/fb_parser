@@ -61,14 +61,13 @@ class FacebookCrawler:
         # wait for the main page to load
         time.sleep(random.randrange(1, 5, 1))
 
-        # self.driver.find_element_by_class_name('_1vp5').click()  # open my homepage
-
         self.page_link = self.driver.current_url  # get link of initial page
 
         self.driver.get(self.page_link)  # open initial page
         time.sleep(random.randrange(1, 5, 1))
 
     def write_in_json(self):
+        # TODO
         f = open('friends.json', 'w', encoding="utf-8")
         f.write(json.dumps(self.storage, indent=4, ensure_ascii=False, sort_keys=False))
         f.close()
@@ -77,27 +76,32 @@ class FacebookCrawler:
 
         self.driver.close()
 
-    def get_id(self, link) -> str:
-        try:
-            self.driver.get(link)  # open profile page
-            time.sleep(random.randrange(1, 5, 1))
-            soup = BeautifulSoup(self.driver.page_source, 'html.parser')
-            self.links = soup.find_all(class_='_1nv3 _11kg _1nv5 profilePicThumb')  # get link including id
-            for link in self.links:
-                str_link = str(link['href'])
-                _id = re.search(r'_id=[0-9]*', str_link)  # parse link to get id
-                str_id = _id.group()
-                id_num = str_id.strip('_id=')
-                return id_num
-        except:
-            self.write_in_json()
+    def to_parse_job(self, job: str):
+        _job = re.search(r'Работа*', job)
+        if _job:
+            job_now = job.split('Работа')[1]  # job now
+            _job_past = re.search(r'Работал[а]*', job)
+            if _job_past:
+                job_past = re.split(r'Работал[а]?', job)[1]  # prev job
+                return job_now, job_past
+            elif job_now == 'Нет рабочих мест для показа':  # no job note
+                return '-', '-'
+            else:
+                return job_now, '-'
 
-    def get_init_name(self):
-        soup = BeautifulSoup(self.driver.page_source, 'html.parser')
-        name = soup.find_all(class_='_2nlw _2nlv')
-        for n in name:
-            main_user_name = n.get_text()
-            return main_user_name
+    def to_parse_study(self, study: str):
+        pass
+        # _job = re.search(r'Работа*', job)
+        # if _job:
+        #     job_now = job.split('Работа')[1]  # job now
+        #     _job_past = re.search(r'Работал[а]*', job)
+        #     if _job_past:
+        #         job_past = re.split(r'Работал[а]?', job)[1]  # prev job
+        #         return job_now, job_past
+        #     elif job_now == 'Нет рабочих мест для показа':  # no job note
+        #         return '-', '-'
+        #     else:
+        #         return job_now, '-'
 
     def get_info(self, link) -> dict:
         try:
@@ -107,100 +111,85 @@ class FacebookCrawler:
             time.sleep(random.randrange(1, 5, 1))
 
             soup = BeautifulSoup(self.driver.page_source, 'html.parser')
-            self.links = soup.find_all(
+            links = soup.find_all(
                 class_='oajrlxb2 g5ia77u1 qu0x051f esr5mh6w e9989ue4 r7d6kgcz rq0escxv nhd2j8a9'
                        ' pq6dq46d p7hjln8o kvgmc6g5 cxmmr5t8 oygrvhab hcukyx3x jb3vyjys rz4wbd8a'
                        ' qt6c0cv9 a8nywdso i1ao9s8h esuyzwwr f1sip0of lzcic4wl l9j0dhe7 abiwlrkh'
                        ' p8dawk7l dwo3fsh8 ow4ym5g4 auili1gw mf7ej076 gmql0nx0 tkr6xdv7 bzsjyuwj '
-                       'cb02d2ww j1lvzwm4')  # get job, education, city,
+                       'cb02d2ww j1lvzwm4')  # get class with info link
 
-            info_link = str(self.links[1]['href'])
+            info_link = str(links[1]['href'])
+
+            # info_link = 'https://www.facebook.com/daria.smirnova.944/about'  ######################
+            # info_link = 'https://www.facebook.com/elisaveta.lobanova/about'  ######################
+            info_link = 'https://www.facebook.com/ivan.khvorov/about'  ###################### работал
+            # info_link = 'https://www.facebook.com/profile.php?id=100027683190771&sk=about'  ###################### пустая
             self.driver.get(info_link)  # open page with info
+            time.sleep(random.randrange(1, 4, 1))
 
-            if self.links is None:  # ЕСЛИ НЕТ ИНФЫ О job, education, city
-                d_info['NO_info'] = '-'
-            else:
-                for word in self.links:
-                    soup_2 = BeautifulSoup(str(word), 'html.parser')
-                    text = soup_2.get_text('\t')
-                    sep_text = text.strip().split('\t')
-                    if len(sep_text) == 1:
-                        d_info['some_info'] = sep_text[0]
-                    else:
-                        _study = re.search(r'Учи[а-я]*', sep_text[0])  # parse
-                        _study_2 = re.search(r'Изуча[а-я]*', sep_text[0])  # parse
+            soup = BeautifulSoup(self.driver.page_source, 'html.parser')
+            link = soup.find_all('a', {'class': 'oajrlxb2 g5ia77u1 qu0x051f esr5mh6w e9989ue4 r7d6kgcz '
+                                                'rq0escxv nhd2j8a9 a8c37x1j p7hjln8o kvgmc6g5 cxmmr5t8 '
+                                                'tvmbv18p hcukyx3x pybr56ya rv4hoivh f10w8fjw h4z51re5 '
+                                                'i1ao9s8h esuyzwwr f1sip0of lzcic4wl l9j0dhe7 abiwlrkh '
+                                                'p8dawk7l beltcj47 p86d2i9g aot14ch1 kzx2olss'})
+            info_link = str(link[0].get('href'))
+            self.driver.get(info_link)  # open page with study & job
+            time.sleep(random.randrange(1, 5, 1))
 
-                        if (_study_2 is not None) or (_study is not None):
-                            d_info['study'] = sep_text[1]
-                        elif sep_text[0].find('Живет') != -1:
-                            d_info['live_in'] = sep_text[1]
+            soup = BeautifulSoup(self.driver.page_source, 'html.parser')
+            job_study = soup.find_all('div', {'class': 'tu1s4ah4'})
+            job = job_study[1].get_text()
+            study = job_study[2].get_text()
+            t = 0
 
-            self.links = soup.find_all(class_='_c24 _2ieq')  # get num, vk (or other social net), b-day
-            if self.links is None:  # ЕСЛИ НЕТ ИНФЫ О job, education, city
-                d_info['NO_info'] = '-'
-            else:
-                for link in self.links:
-                    soup_3 = BeautifulSoup(str(link), 'html.parser')
-                    text = soup_3.get_text('\t')
-                    sep_text = text.strip().split('\t')
+            self.to_parse_job(job)
+            self.to_parse_study(study)
 
-                    if sep_text[0].find('Телефоны') != -1:
-                        d_info['phone'] = sep_text[1]
-                    elif sep_text[0].find('Дата рождения') != -1:
-                        d_info['b-day'] = sep_text[1]
-                    elif sep_text[0].find('Ссылки на профили в Сети') != -1:
-                        d_info['links'] = sep_text[1]
-                    elif sep_text[0].find('Электронный адрес') != -1:
-                        d_info['email'] = sep_text[1]
+            # ПРОВЕРКА НА ВЫШКУ ВШЭ
 
-            return d_info
+            # if self.links is None:  # ЕСЛИ НЕТ ИНФЫ О job, education, city
+            #     d_info['NO_info'] = '-'
+            # else:
+            #     for word in self.links:
+            # soup_2 = BeautifulSoup(str(word), 'html.parser')
+            # text = soup_2.get_text('\t')
+            # sep_text = text.strip().split('\t')
+            # if len(sep_text) == 1:
+            #     d_info['some_info'] = sep_text[0]
+            # else:
+            #     _study = re.search(r'Учи[а-я]*', sep_text[0])  # parse
+            # _study_2 = re.search(r'Изуча[а-я]*', sep_text[0])  # parse
+            #
+            # if (_study_2 is not None) or (_study is not None):
+            #     d_info['study'] = sep_text[1]
+            # elif sep_text[0].find('Живет') != -1:
+            #     d_info['live_in'] = sep_text[1]
+            #
+            # self.links = soup.find_all(class_='_c24 _2ieq')  # get num, vk (or other social net), b-day
+            # if self.links is None:  # ЕСЛИ НЕТ ИНФЫ О job, education, city
+            #     d_info['NO_info'] = '-'
+            # else:
+            #     for
+            # link in self.links:
+            # soup_3 = BeautifulSoup(str(link), 'html.parser')
+            # text = soup_3.get_text('\t')
+            # sep_text = text.strip().split('\t')
+            #
+            # if sep_text[0].find('Телефоны') != -1:
+            #     d_info['phone'] = sep_text[1]
+            # elif sep_text[0].find('Дата рождения') != -1:
+            #     d_info['b-day'] = sep_text[1]
+            # elif sep_text[0].find('Ссылки на профили в Сети') != -1:
+            #     d_info['links'] = sep_text[1]
+            # elif sep_text[0].find('Электронный адрес') != -1:
+            #     d_info['email'] = sep_text[1]
+            #
+            # return d_info
         except:
             self.write_in_json()
 
-    def get_friends(self, link) -> list:
-        try:
-            self.driver.get(link)  # open page with my friends
-            time.sleep(random.randrange(1, 5, 1))
-
-            # scroll
-            elems = WebDriverWait(self.driver, 30).until(
-                EC.presence_of_all_elements_located((By.CLASS_NAME, "_698")))  # all fr users
-            length = len(elems)  # смотрю сколько чел загрузилось
-            self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-
-            time.sleep(random.randrange(6, 10))  # to load all elems
-
-            elem1 = WebDriverWait(self.driver, 30).until(EC.presence_of_all_elements_located((By.CLASS_NAME, "_698")))
-            second_length = len(elem1)
-
-            while second_length > length:
-                self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-
-                time.sleep(random.randrange(6, 10))  # to load all elems
-
-                elem1 = WebDriverWait(self.driver, 30).until(
-                    EC.presence_of_all_elements_located((By.CLASS_NAME, "_698")))
-                length = second_length
-                second_length = len(elem1)
-
-            time.sleep(random.randrange(1, 5, 1))
-
-            arr_of_friends = []  # names of user's friends
-
-            soup = BeautifulSoup(self.driver.page_source, "html.parser")
-
-            for i in soup.find_all('div', {'class': 'fsl fwb fcb'}):  # имена друзей
-                names = i.find_all('a', href=True)
-                for name in names:
-                    if name is None:
-                        continue
-                    page_link = name['href']
-                    self.arr_fr_pages.put(page_link)  # put in queue
-                    self.friends_names.put(name.get_text())  # put a friend name in queue
-                    arr_of_friends.append(name.get_text())  # add a friend name
-            return arr_of_friends
-        except:
-            self.write_in_json()
+            # time.sleep(random.randrange(6, 10))  # to load all elems
 
     def set_data(self):
         """
@@ -259,10 +248,11 @@ class FacebookCrawler:
 
 
 def main():
-    # crawler = FacebookCrawler(login='79037332943', password='мщшц38епцщг')
+    login='79037332943'
+    password='мщшц38епцщг'
 
-    login = 'irkaxortiza@mail.ru'
-    password = '17YouWannaBeOnTop1995'
+    # login = 'irkaxortiza@mail.ru'
+    # password = '17YouWannaBeOnTop1995'
 
     crawler = FacebookCrawler()
     crawler.set_data()
