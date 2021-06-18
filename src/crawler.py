@@ -2,6 +2,7 @@ import json
 import os
 import random
 import re
+import sys
 import time
 from queue import Queue
 
@@ -31,7 +32,7 @@ class FacebookCrawler:
 
         self.driver = webdriver.Chrome(options=chrome_options,
                                        executable_path=r'C:\chromedriver_win32\chromedriver.exe')
-        # дает драйверу подождать несколько секунд, перед следующим действием
+        # gives driver wait time and then
         self.wait = WebDriverWait(self.driver, 10)
 
         self.page_link = ''
@@ -220,8 +221,9 @@ class FacebookCrawler:
                 self.visited.add(link_usr)  # add link in visited
                 try:
                     user_information = self.get_info(link_usr)
-                    # add parsed user into storage
-                    self.fill_storage(id_usr, name_usr, user_information)
+                    if bool(user_information):
+                        # add parsed user into storage
+                        self.fill_storage(id_usr, name_usr, user_information)
 
                 except TimeoutException:
                     self.write_in_json()
@@ -232,21 +234,29 @@ class FacebookCrawler:
 def main():
     # TODO
     #  *args **kwargs
+    help_message = '''Please, enter a valid request! Login, password.
+                  Example: 79037332943 мщшц38епцщг'''
 
-    login = '79037332943'
-    password = 'мщшц38епцщг'
+    if len(sys.argv) != 3:
+        print(help_message)
+    else:
+        login = sys.argv[1]
+        password = sys.argv[2]
 
-    # login = 'irkaxortiza@mail.ru'
-    # password = '17YouWannaBeOnTop1995'
+        # login = '79037332943'
+        # password = 'мщшц38епцщг'
 
-    # init class instance
-    crawler = FacebookCrawler()
-    # add data to class
-    crawler.set_data()
-    # dive into fb
-    crawler.login(login=login, password=password)
-    # start of parsing users
-    crawler.to_parse()
+        # login = 'irkaxortiza@mail.ru'
+        # password = '17YouWannaBeOnTop1995'
+
+        # init class instance
+        crawler = FacebookCrawler()
+        # add data to class
+        crawler.set_data()
+        # dive into fb
+        crawler.login(login=login, password=password)
+        # start of parsing users
+        crawler.to_parse()
 
 
 if __name__ == '__main__':
