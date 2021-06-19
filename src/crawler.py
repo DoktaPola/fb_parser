@@ -1,8 +1,6 @@
-import json
 import os
 import random
 import re
-import sys
 import time
 from queue import Queue
 
@@ -13,6 +11,7 @@ from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
+
 from src.convertor import create_csv
 
 
@@ -65,13 +64,17 @@ class FacebookCrawler:
         """
         Add parsed data from storage to .json file.
         """
-        f = open('fb_hse_usr_jobs.json', 'w', encoding="utf-8")
-        f.write(json.dumps(self.storage,
-                           indent=4,
-                           ensure_ascii=False,
-                           sort_keys=False))
-        f.close()
-        self.driver.close()
+        df = pd.DataFrame(self.storage)
+
+        df.to_csv(r'fb_hse_usr_jobs.csv', index=False, header=True)
+
+        # f = open('fb_hse_usr_jobs.json', 'w', encoding="utf-8")
+        # f.write(json.dumps(self.storage,
+        #                    indent=4,
+        #                    ensure_ascii=False,
+        #                    sort_keys=False))
+        # f.close()
+        # self.driver.quit()  ###############################3
 
     def to_parse_job(self, job: str):
         """
@@ -79,17 +82,23 @@ class FacebookCrawler:
         :param job: string with info about jobs
         :return: current job name & prev job name
         """
-        _job = re.search(r'Работа*', job)
-        if _job:
-            job_now = job.split('Работа')[1]  # job now
-            _job_past = re.search(r'Работал[а]*', job)
-            if _job_past:
-                job_past = re.split(r'Работал[а]?', job)[1]  # prev job
-                return job_now, job_past
-            elif job_now == 'Нет рабочих мест для показа':  # no job note
-                return '-', '-'
-            else:
-                return job_now, '-'
+        try:
+            _job = re.search(r'Работа*', job)
+            if _job:
+                job_now = job.split('Работа')[1]  # job now
+                _job_past = re.search(r'Работал[а]*', job)
+                if _job_past:
+                    job_past = re.split(r'Работал[а]?', job)[1]  # prev job
+                    return job_now, job_past
+                elif job_now == 'Нет рабочих мест для показа':  # no job note
+                    return '-', '-'
+                else:
+                    return job_now, '-'
+        except TimeoutException:
+            self.write_in_json()
+            time.sleep(random.choice([10800, 12600, 11700, 11400]))
+            # main()
+            self.to_parse()
 
     def to_parse_study(self, study: str) -> bool:
         """
@@ -97,20 +106,31 @@ class FacebookCrawler:
         :param study: string with info about uni-s
         :return: (bool) whether user studies or studied in HSE
         """
-        _study = re.search(r'Вуз*', study)
-        if _study:
-            study_name = study.split('Вуз')[1]  # study name
-            # try find ВШЭ, Вышка, HSE
-            hse_study = re.search(r'[a-zA-Zа-яА-Я ]*HSE[a-zA-Zа-яА-Я ]*', study) or \
-                        re.search(r'[a-zA-Zа-яА-Я ]*вшэ[a-zA-Zа-яА-Я ]*', study) or \
-                        re.search(r'[a-zA-Zа-яА-Я ]*ВШЭ[a-zA-Zа-яА-Я ]*', study) or \
-                        re.search(r'[a-zA-Zа-яА-Я ]*Вышка[a-zA-Zа-яА-Я ]*', study)
-            if hse_study:
-                return True
-            elif study_name == 'Нет школ для показа':  # no uni note
-                return False
-            else:
-                return False
+        try:
+            _study = re.search(r'Вуз*', study)
+            if _study:
+                study_name = study.split('Вуз')[1]  # study name
+                # try find ВШЭ, Вышка, HSE
+                hse_study = re.search(r'[a-zA-Zа-яА-Я ]*HSE[a-zA-Zа-яА-Я ]*', study) or \
+                            re.search(r'[a-zA-Zа-яА-Я ]*вшэ[a-zA-Zа-яА-Я ]*', study) or \
+                            re.search(r'[a-zA-Zа-яА-Я ]*ВШЭ[a-zA-Zа-яА-Я ]*', study) or \
+                            re.search(r'[a-zA-Zа-яА-Я ]*Вышка[a-zA-Zа-яА-Я ]*', study)
+                if hse_study:
+                    return True
+                elif study_name == 'Нет школ для показа':  # no uni note
+                    return False
+                else:
+                    return False
+        except TimeoutException:
+            self.write_in_json()
+            time.sleep(random.choice([10800, 12600, 11700, 11400]))
+            # main()
+            self.to_parse()
+
+    def get_info_link(self, info_links: list) -> str:
+        for link in info_links:
+            if re.search(r'[a-zA-Zа-яА-Я ]*about', link):
+                return link
 
     def get_info(self, link) -> dict:
         """
@@ -122,24 +142,35 @@ class FacebookCrawler:
             d_info = dict()
 
             self.driver.get(link)  # open user page
-            time.sleep(random.randrange(1, 5, 1))
+            time.sleep(random.randrange(3, 5, 1))
 
             soup = BeautifulSoup(self.driver.page_source, 'html.parser')
-            links = soup.find_all(
-                class_='oajrlxb2 g5ia77u1 qu0x051f esr5mh6w e9989ue4 r7d6kgcz rq0escxv nhd2j8a9'
-                       ' pq6dq46d p7hjln8o kvgmc6g5 cxmmr5t8 oygrvhab hcukyx3x jb3vyjys rz4wbd8a'
-                       ' qt6c0cv9 a8nywdso i1ao9s8h esuyzwwr f1sip0of lzcic4wl l9j0dhe7 abiwlrkh'
-                       ' p8dawk7l dwo3fsh8 ow4ym5g4 auili1gw mf7ej076 gmql0nx0 tkr6xdv7 bzsjyuwj '
-                       'cb02d2ww j1lvzwm4')  # get class with info link
+            # links = soup.find_all(
+            #     class_='oajrlxb2 g5ia77u1 qu0x051f esr5mh6w e9989ue4 r7d6kgcz rq0escxv nhd2j8a9'
+            #            ' pq6dq46d p7hjln8o kvgmc6g5 cxmmr5t8 oygrvhab hcukyx3x jb3vyjys rz4wbd8a'
+            #            ' qt6c0cv9 a8nywdso i1ao9s8h esuyzwwr f1sip0of lzcic4wl l9j0dhe7 abiwlrkh'
+            #            ' p8dawk7l dwo3fsh8 ow4ym5g4 auili1gw mf7ej076 gmql0nx0 tkr6xdv7 bzsjyuwj '
+            #            'cb02d2ww j1lvzwm4')  # get class with info link
 
-            info_link = str(links[1]['href'])
+            # info_link = str(links[1]['href'])
+            info_links = []
+            for i in soup.find_all(class_='oajrlxb2 g5ia77u1 qu0x051f esr5mh6w e9989ue4 r7d6kgcz rq0escxv nhd2j8a9'
+                                          ' pq6dq46d p7hjln8o kvgmc6g5 cxmmr5t8 oygrvhab hcukyx3x jb3vyjys rz4wbd8a'
+                                          ' qt6c0cv9 a8nywdso i1ao9s8h esuyzwwr f1sip0of lzcic4wl l9j0dhe7 abiwlrkh'
+                                          ' p8dawk7l dwo3fsh8 ow4ym5g4 auili1gw mf7ej076 gmql0nx0 tkr6xdv7 bzsjyuwj '
+                                          'cb02d2ww j1lvzwm4', href=True):
+                info_links.append(str(i['href']))
+
+            info_link = self.get_info_link(info_links)
+
             # TESTS
             # info_link = 'https://www.facebook.com/daria.smirnova.944/about'  ######################
+            # info_link = 'https://www.facebook.com/11ii11iihyb/about'  #### CLOSED PAGE
             # info_link = 'https://www.facebook.com/elisaveta.lobanova/about'  ######################
             # info_link = 'https://www.facebook.com/ivan.khvorov/about'  ###################### работал
             # info_link = 'https://www.facebook.com/profile.php?id=100027683190771&sk=about'  ###################### пустая
             self.driver.get(info_link)  # open page with info
-            time.sleep(random.randrange(1, 4, 1))
+            time.sleep(random.randrange(2, 4, 1))
 
             soup = BeautifulSoup(self.driver.page_source, 'html.parser')
             link = soup.find_all('a', {'class': 'oajrlxb2 g5ia77u1 qu0x051f esr5mh6w e9989ue4 r7d6kgcz '
@@ -152,6 +183,13 @@ class FacebookCrawler:
             time.sleep(random.randrange(1, 5, 1))
 
             soup = BeautifulSoup(self.driver.page_source, 'html.parser')
+            # if page is private
+            if soup.find_all('span', {'class': 'd2edcug0 hpfvmrgz qv66sw1b c1et5uql lr9zc1uh a8c37x1j '
+                                               'keod5gw0 nxhoafnm aigsh9s9 ns63r2gh fe6kdd0r mau55g9w '
+                                               'c8b282yb iv3no6db o3w64lxj b2s5l15y hnhda86s pipptul6 '
+                                               'oqcyycmt'}):
+                return d_info
+
             job_study = soup.find_all('div', {'class': 'tu1s4ah4'})
             job = job_study[1].get_text()
             study = job_study[2].get_text()
@@ -171,6 +209,9 @@ class FacebookCrawler:
             return d_info
         except TimeoutException:
             self.write_in_json()
+            time.sleep(random.choice([10800, 12600, 11700, 11400]))
+            # main()
+            self.to_parse()
 
     def set_data(self):
         """
@@ -198,14 +239,20 @@ class FacebookCrawler:
         :param user_name: name+surname from fb
         :param d_information: current job, prev job
         """
-        d_info = dict()
+        try:
+            d_info = dict()
 
-        d_info['id'] = int(user_id)
-        d_info['name'] = user_name
+            d_info['id'] = int(user_id)
+            d_info['name'] = user_name
 
-        d_info.update(d_information)
+            d_info.update(d_information)
 
-        self.storage.append(d_info)
+            self.storage.append(d_info)
+        except TimeoutException:
+            self.write_in_json()
+            time.sleep(random.choice([10800, 12600, 11700, 11400]))
+            # main()
+            self.to_parse()
 
     def to_parse(self):
         """
@@ -224,39 +271,31 @@ class FacebookCrawler:
                     if bool(user_information):
                         # add parsed user into storage
                         self.fill_storage(id_usr, name_usr, user_information)
-
                 except TimeoutException:
                     self.write_in_json()
+                    time.sleep(random.choice([10800, 12600, 11700, 11400]))
+                    # main()
+                    self.to_parse()
+
             # else:
             #     self.users_pages.get()  # удаляю ссыдку на стр, если уже смотрели такого Пользователя
 
 
 def main():
-    # TODO
-    #  *args **kwargs
-    help_message = '''Please, enter a valid request! Login, password.
-                  Example: 79037332943 мщшц38епцщг'''
+    login = '79037332943'
+    password = 'мщшц38епцщг'
 
-    if len(sys.argv) != 3:
-        print(help_message)
-    else:
-        login = sys.argv[1]
-        password = sys.argv[2]
+    # login = 'irkaxortiza@mail.ru'
+    # password = '17YouWannaBeOnTop1995'
 
-        # login = '79037332943'
-        # password = 'мщшц38епцщг'
-
-        # login = 'irkaxortiza@mail.ru'
-        # password = '17YouWannaBeOnTop1995'
-
-        # init class instance
-        crawler = FacebookCrawler()
-        # add data to class
-        crawler.set_data()
-        # dive into fb
-        crawler.login(login=login, password=password)
-        # start of parsing users
-        crawler.to_parse()
+    # init class instance
+    crawler = FacebookCrawler()
+    # add data to class
+    crawler.set_data()
+    # dive into fb
+    crawler.login(login=login, password=password)
+    # start of parsing users
+    crawler.to_parse()
 
 
 if __name__ == '__main__':
