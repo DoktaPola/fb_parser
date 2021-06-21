@@ -1,9 +1,7 @@
 <p align="center">
   <img src="https://i.imgur.com/SPYT1zV.png" width="154">
   <h1 align="center">FB <br/>Parser</h1>
-  <p align="center">A desktop application that implements <b>search, analysis, and graphical display</b> of data
-  received from users of such social networks like <b>Facebook and Vkontakte</b>.
-Implemented in Python.<p>
+  <p align="center">A utility Python script written to help with the Facebook parsing (get jobs of HSE students). <p>
   <p align="center">
 	<a href="https://www.python.org/">
     <img src="https://img.shields.io/badge/built%20with-Python3-ffc0cb.svg" />
