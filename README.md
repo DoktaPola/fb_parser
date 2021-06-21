@@ -25,7 +25,7 @@ Implemented in Python.<p>
 ### Structure
 
 * **data/**
-    - **FB_data.xlsx** --> initial data (Excel) with likes & subscribers info.  **!!! MUST BE NAMED *FB_data* !!!**
+    - **FB_data.xlsx** --> initial data (Excel) with likes & subscribers info.  **!!!** MUST BE NAMED ***FB_data*** **!!!**
     - **fb_data.csv** --> converted data for future parser work.
 * **example_output/**
     - **fb_hse_usr_jobs.csv** --> example (real data) of parsed data (id, name, current job, previous job).
@@ -51,15 +51,15 @@ pip install openpyxl (v3.0.7)
 __Important:__ Selenium requires a driver to interface with the chosen browser.  
 * download **[Chrome driver](https://sites.google.com/a/chromium.org/chromedriver/downloads)** (depends on Chrome version)
 __Important:__ **!!!**  Path to *chromedriver* you can change in **crawler.py**. (Has to be correct!)
-<img src="https://i.imgur.com/QMXptaq.png" width="154">
+<img src="https://i.imgur.com/QMXptaq.png" width="600">
 
 #### Running
 
-To run app, you'll need to run the **[file](https://github.com/DoktaPola/fb_parser/blob/main/src/crawler.py)** script you've just downloaded.
+To run app, you'll need to run the **[file](https://github.com/DoktaPola/fb_parser/blob/main/src/crawler.py)** script (download the whole project).
 
 If this Facebook account is blocked one day, you can change **login** and **password** to new ones in **crawler.py**, like so:
 ```python
-login="****",
+login="****"
 password="****"
 ```
 
