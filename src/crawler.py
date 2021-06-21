@@ -175,13 +175,7 @@ class FacebookCrawler:
 
             info_link = self.get_info_link(info_links)
 
-            # TESTS
-            # info_link = 'https://www.facebook.com/daria.smirnova.944/about'  ######################
-            # info_link = 'https://www.facebook.com/11ii11iihyb/about'  #### CLOSED PAGE
-            # info_link = 'https://www.facebook.com/elisaveta.lobanova/about'  ######################
-            # info_link = 'https://www.facebook.com/timpikes/about'  ######################
-            # info_link = 'https://www.facebook.com/ivan.khvorov/about'  ###################### работал
-            # info_link = 'https://www.facebook.com/profile.php?id=100027683190771&sk=about'  ###################### пустая
+            
             self.driver.get(info_link)  # open page with info
             time.sleep(random.randrange(2, 4, 1))
 
